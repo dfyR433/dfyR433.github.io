@@ -132,10 +132,10 @@
             align-items: center;
         }
 
-        /* Smooth directional pad */
-        .smooth-dpad {
+        /* Analog pad */
+        .analog-pad {
             background: #172e3a;
-            width: 180px;
+            width: 200px;
             height: 90px;
             border-radius: 60px;
             box-shadow: 0 0 0 4px cyan, 0 0 40px cyan;
@@ -144,10 +144,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
         }
 
-        .smooth-dpad::before {
+        .analog-pad::before {
             content: '';
             position: absolute;
             width: 2px;
@@ -158,13 +157,16 @@
             border-radius: 1px;
         }
 
-        .smooth-dpad span {
-            font-size: 3rem;
-            color: #c6fdff;
-            font-weight: bold;
-            text-shadow: 0 0 10px cyan;
+        .analog-thumb {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #4afcff;
+            border-radius: 50%;
+            box-shadow: 0 0 20px cyan;
+            transform: translate(-50%, -50%);
             pointer-events: none;
-            z-index: 2;
+            transition: background 0.05s;
         }
 
         .fire-btn {
@@ -198,7 +200,7 @@
             justify-content: center;
         }
 
-        .restart-btn, .audio-btn {
+        .restart-btn, .audio-btn, .settings-btn {
             background: #172e3a;
             border: none;
             font-size: 1.6rem;
@@ -213,7 +215,7 @@
             touch-action: manipulation;
         }
 
-        .restart-btn:hover, .audio-btn:hover {
+        .restart-btn:hover, .audio-btn:hover, .settings-btn:hover {
             background: #255064;
             color: white;
             box-shadow: 0 0 0 4px cyan, 0 0 70px cyan;
@@ -224,14 +226,116 @@
             box-shadow: 0 0 0 2px #f6f, 0 0 30px #f6f;
         }
 
+        .settings-btn {
+            background: #3a2a1f;
+            box-shadow: 0 0 0 2px #ffaa00, 0 0 30px #ffaa00;
+        }
+
+        /* Settings panel overlay */
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .settings-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .settings-panel {
+            background: #0b1a24;
+            border-radius: 3rem;
+            padding: 2.5rem;
+            border: 3px solid cyan;
+            box-shadow: 0 0 50px cyan;
+            max-width: 400px;
+            width: 90%;
+            color: white;
+        }
+
+        .settings-panel h2 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: cyan;
+        }
+
+        .setting-item {
+            margin-bottom: 1.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.8rem;
+        }
+
+        .setting-item label {
+            color: #aaffff;
+        }
+
+        .setting-item input[type="range"] {
+            width: 200px;
+            height: 10px;
+            background: #2f4f5f;
+            border-radius: 5px;
+            -webkit-appearance: none;
+        }
+
+        .setting-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            background: cyan;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px cyan;
+        }
+
+        .setting-item select {
+            background: #1f3d4a;
+            color: white;
+            font-size: 1.6rem;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            border: 2px solid cyan;
+        }
+
+        .close-settings {
+            background: cyan;
+            color: black;
+            font-size: 2rem;
+            padding: 0.8rem 2rem;
+            border-radius: 4rem;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            display: block;
+            margin: 2rem auto 0;
+        }
+
         @media (max-width: 600px) {
             .game-wrapper {
                 padding: 1rem;
                 border-radius: 2rem;
             }
-            .smooth-dpad {
-                width: 150px;
+            .analog-pad {
+                width: 160px;
                 height: 75px;
+            }
+            .analog-thumb {
+                width: 35px;
+                height: 35px;
             }
             .fire-btn {
                 width: 85px;
@@ -245,13 +349,19 @@
                 font-size: 1.4rem;
                 padding: 0.3rem 0.8rem;
             }
+            .setting-item {
+                font-size: 1.4rem;
+            }
+            .setting-item input[type="range"] {
+                width: 140px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="game-wrapper">
         <div class="stats-panel">
-            <div class="title"><h1>ULTRA WARS</h1></div>
+            <div class="title"><h1>NOVA WARS</h1></div>
             <div class="stats">
                 <div class="stat">🔰 <span id="levelDisplay">1</span></div>
                 <div class="stat">💥 <span id="scoreDisplay">0</span></div>
@@ -263,10 +373,10 @@
             <canvas id="gameCanvas" width="900" height="650"></canvas>
         </div>
 
-        <!-- Smooth touch controls: sliding pad + FIRE -->
+        <!-- Analog touch controls + fire -->
         <div class="touch-controls">
-            <div class="smooth-dpad" id="smoothDpad">
-                <span>← →</span>
+            <div class="analog-pad" id="analogPad">
+                <div class="analog-thumb" id="analogThumb"></div>
             </div>
             <button class="fire-btn" id="touchFire">⚡</button>
         </div>
@@ -277,8 +387,37 @@
             </div>
             <div class="action-btns">
                 <button class="audio-btn" id="audioEnableBtn">🔈 AUDIO</button>
+                <button class="settings-btn" id="settingsBtn">⚙️ SETTINGS</button>
                 <button class="restart-btn" id="restartButton">⟲ RESTART</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Settings overlay -->
+    <div class="settings-overlay" id="settingsOverlay">
+        <div class="settings-panel">
+            <h2>⚙️ SETTINGS</h2>
+            <div class="setting-item">
+                <label>🔊 Sound Volume</label>
+                <input type="range" id="volumeSlider" min="0" max="100" value="100">
+            </div>
+            <div class="setting-item">
+                <label>🎮 Difficulty</label>
+                <select id="difficultySelect">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label>💥 Enemy Speed</label>
+                <span id="enemySpeedDisplay">1.3</span>
+            </div>
+            <div class="setting-item">
+                <label>🔫 Bullet Speed</label>
+                <span id="bulletSpeedDisplay">3.0</span>
+            </div>
+            <button class="close-settings" id="closeSettings">CLOSE</button>
         </div>
     </div>
 
@@ -292,17 +431,28 @@
             const livesSpan = document.getElementById('livesDisplay');
             const restartBtn = document.getElementById('restartButton');
             const audioEnableBtn = document.getElementById('audioEnableBtn');
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsOverlay = document.getElementById('settingsOverlay');
+            const closeSettings = document.getElementById('closeSettings');
+            const volumeSlider = document.getElementById('volumeSlider');
+            const difficultySelect = document.getElementById('difficultySelect');
+            const enemySpeedDisplay = document.getElementById('enemySpeedDisplay');
+            const bulletSpeedDisplay = document.getElementById('bulletSpeedDisplay');
 
-            // Smooth pad and fire button
-            const smoothDpad = document.getElementById('smoothDpad');
+            // Analog pad elements
+            const analogPad = document.getElementById('analogPad');
+            const analogThumb = document.getElementById('analogThumb');
             const touchFire = document.getElementById('touchFire');
 
             // ---------- FIXED DIMENSIONS ----------
             const W = 900, H = 650;
+            const PLAYER_MIN_X = 10;
+            const PLAYER_MAX_X = W - 70; // player.w = 60, so max x = W - 70
 
             // ---------- AUDIO CONTEXT ----------
             let audioCtx = null;
             let soundsEnabled = false;
+            let soundVolume = 1.0;
 
             function initAudio() {
                 if (audioCtx) return;
@@ -318,7 +468,7 @@
                 const gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
                 osc.frequency.value = 880;
-                gain.gain.value = 0.15;
+                gain.gain.value = 0.15 * soundVolume;
                 osc.connect(gain).connect(audioCtx.destination);
                 osc.start();
                 gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
@@ -332,7 +482,7 @@
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(200, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.3 * soundVolume, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
                 osc.connect(gain).connect(audioCtx.destination);
                 osc.start();
@@ -347,7 +497,7 @@
                     const gain = audioCtx.createGain();
                     osc.type = 'sine';
                     osc.frequency.value = 600 + i * 200;
-                    gain.gain.value = 0.1;
+                    gain.gain.value = 0.1 * soundVolume;
                     osc.connect(gain).connect(audioCtx.destination);
                     osc.start(now + i * 0.1);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.2);
@@ -362,7 +512,7 @@
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(400, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.5);
-                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.25 * soundVolume, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
                 osc.connect(gain).connect(audioCtx.destination);
                 osc.start();
@@ -372,6 +522,55 @@
             audioEnableBtn.addEventListener('click', () => {
                 initAudio();
                 if (audioCtx) playLevelUp();
+            });
+
+            // Settings
+            volumeSlider.addEventListener('input', (e) => {
+                soundVolume = e.target.value / 100;
+            });
+
+            let difficulty = 'medium';
+            difficultySelect.addEventListener('change', (e) => {
+                difficulty = e.target.value;
+                updateDifficulty();
+            });
+
+            function updateDifficulty() {
+                if (difficulty === 'easy') {
+                    ENEMY_BASE_SPEED = 1.0;
+                    ENEMY_STEP_DOWN = 15;
+                    REGULAR_BULLET_SPEED = 2.5;
+                    UFO_BULLET_SPEED = 3.5;
+                    BOSS_BULLET_SPEED = 2.5;
+                } else if (difficulty === 'medium') {
+                    ENEMY_BASE_SPEED = 1.3;
+                    ENEMY_STEP_DOWN = 18;
+                    REGULAR_BULLET_SPEED = 3.0;
+                    UFO_BULLET_SPEED = 4.0;
+                    BOSS_BULLET_SPEED = 3.0;
+                } else { // hard
+                    ENEMY_BASE_SPEED = 1.6;
+                    ENEMY_STEP_DOWN = 22;
+                    REGULAR_BULLET_SPEED = 3.5;
+                    UFO_BULLET_SPEED = 4.5;
+                    BOSS_BULLET_SPEED = 3.5;
+                }
+                enemySpeedDisplay.textContent = ENEMY_BASE_SPEED.toFixed(1);
+                bulletSpeedDisplay.textContent = REGULAR_BULLET_SPEED.toFixed(1);
+            }
+
+            // Default speeds
+            let ENEMY_BASE_SPEED = 1.3;
+            let ENEMY_STEP_DOWN = 18;
+            let REGULAR_BULLET_SPEED = 3.0;
+            let UFO_BULLET_SPEED = 4.0;
+            let BOSS_BULLET_SPEED = 3.0;
+
+            settingsBtn.addEventListener('click', () => {
+                settingsOverlay.classList.add('active');
+            });
+            closeSettings.addEventListener('click', () => {
+                settingsOverlay.classList.remove('active');
             });
 
             // ---------- GAME STATE ----------
@@ -400,8 +599,6 @@
             let enemies = [];
             let enemyBullets = [];
             let enemyDirection = 1;
-            const ENEMY_BASE_SPEED = 1.3;
-            const ENEMY_STEP_DOWN = 18;
 
             // Level transition
             let levelTransitionTimer = 0;
@@ -416,7 +613,78 @@
             let bossActive = false;
             let bossShootTimer = 0;
 
-            // ---------- KEY HANDLING ----------
+            // ---------- ANALOG TOUCH CONTROL ----------
+            let analogActive = false;
+
+            function updateAnalogFromEvent(e) {
+                e.preventDefault();
+                const rect = analogPad.getBoundingClientRect();
+                let clientX;
+                if (e.touches) {
+                    clientX = e.touches[0].clientX;
+                } else {
+                    clientX = e.clientX;
+                }
+                // Clamp to pad bounds
+                let relativeX = (clientX - rect.left) / rect.width;
+                relativeX = Math.max(0, Math.min(1, relativeX));
+                // Update thumb position (centered on touch)
+                const thumbX = relativeX * rect.width;
+                analogThumb.style.left = thumbX + 'px';
+                analogThumb.style.top = (rect.height / 2) + 'px';
+
+                // Map to player X
+                const targetX = PLAYER_MIN_X + relativeX * (PLAYER_MAX_X - PLAYER_MIN_X);
+                player.x = targetX;
+            }
+
+            function startAnalog(e) {
+                e.preventDefault();
+                analogActive = true;
+                updateAnalogFromEvent(e);
+            }
+
+            function moveAnalog(e) {
+                e.preventDefault();
+                if (analogActive) {
+                    updateAnalogFromEvent(e);
+                }
+            }
+
+            function endAnalog(e) {
+                e.preventDefault();
+                analogActive = false;
+                // Return thumb to center
+                const rect = analogPad.getBoundingClientRect();
+                analogThumb.style.left = (rect.width / 2) + 'px';
+                analogThumb.style.top = (rect.height / 2) + 'px';
+            }
+
+            // Touch events
+            analogPad.addEventListener('touchstart', startAnalog, { passive: false });
+            analogPad.addEventListener('touchmove', moveAnalog, { passive: false });
+            analogPad.addEventListener('touchend', endAnalog);
+            analogPad.addEventListener('touchcancel', endAnalog);
+
+            // Mouse events (for desktop)
+            analogPad.addEventListener('mousedown', startAnalog);
+            window.addEventListener('mousemove', (e) => {
+                if (analogActive) moveAnalog(e);
+            });
+            window.addEventListener('mouseup', endAnalog);
+
+            // Fire button
+            touchFire.addEventListener('touchstart', (e) => { e.preventDefault(); keys.space = true; }, { passive: false });
+            touchFire.addEventListener('touchend', (e) => { e.preventDefault(); keys.space = false; });
+            touchFire.addEventListener('touchcancel', (e) => { e.preventDefault(); keys.space = false; });
+            touchFire.addEventListener('mousedown', (e) => { e.preventDefault(); keys.space = true; });
+            touchFire.addEventListener('mouseup', (e) => { e.preventDefault(); keys.space = false; });
+            touchFire.addEventListener('mouseleave', () => { keys.space = false; });
+
+            canvas.addEventListener('touchstart', (e) => e.preventDefault());
+            canvas.addEventListener('touchmove', (e) => e.preventDefault());
+
+            // ---------- KEYBOARD HANDLING (digital fallback) ----------
             const keys = { left: false, right: false, space: false };
 
             function handleKeyDown(e) {
@@ -441,68 +709,6 @@
 
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('keyup', handleKeyUp);
-
-            // ---------- SMOOTH TOUCH PAD (SLIDING) ----------
-            function handlePadStart(e) {
-                e.preventDefault();
-                updatePadFromEvent(e);
-            }
-
-            function handlePadMove(e) {
-                e.preventDefault();
-                updatePadFromEvent(e);
-            }
-
-            function handlePadEnd(e) {
-                e.preventDefault();
-                keys.left = false;
-                keys.right = false;
-            }
-
-            function updatePadFromEvent(e) {
-                const rect = smoothDpad.getBoundingClientRect();
-                let clientX;
-                if (e.touches) {
-                    clientX = e.touches[0].clientX;
-                } else {
-                    clientX = e.clientX;
-                }
-                const relativeX = clientX - rect.left;
-                if (relativeX < rect.width / 2) {
-                    keys.left = true;
-                    keys.right = false;
-                } else {
-                    keys.left = false;
-                    keys.right = true;
-                }
-            }
-
-            // Touch events
-            smoothDpad.addEventListener('touchstart', handlePadStart, { passive: false });
-            smoothDpad.addEventListener('touchmove', handlePadMove, { passive: false });
-            smoothDpad.addEventListener('touchend', handlePadEnd);
-            smoothDpad.addEventListener('touchcancel', handlePadEnd);
-
-            // Mouse events (for debugging on desktop)
-            smoothDpad.addEventListener('mousedown', handlePadStart);
-            smoothDpad.addEventListener('mousemove', (e) => {
-                if (e.buttons === 1) { // left button pressed
-                    handlePadMove(e);
-                }
-            });
-            smoothDpad.addEventListener('mouseup', handlePadEnd);
-            smoothDpad.addEventListener('mouseleave', handlePadEnd);
-
-            // Fire button
-            touchFire.addEventListener('touchstart', (e) => { e.preventDefault(); keys.space = true; }, { passive: false });
-            touchFire.addEventListener('touchend', (e) => { e.preventDefault(); keys.space = false; });
-            touchFire.addEventListener('touchcancel', (e) => { e.preventDefault(); keys.space = false; });
-            touchFire.addEventListener('mousedown', (e) => { e.preventDefault(); keys.space = true; });
-            touchFire.addEventListener('mouseup', (e) => { e.preventDefault(); keys.space = false; });
-            touchFire.addEventListener('mouseleave', () => { keys.space = false; });
-
-            canvas.addEventListener('touchstart', (e) => e.preventDefault());
-            canvas.addEventListener('touchmove', (e) => e.preventDefault());
 
             // ---------- GAME FUNCTIONS ----------
             function updateDisplay() {
@@ -534,7 +740,6 @@
                 enemies = [];
                 bossActive = false;
 
-                // Level 10: HUGE MONSTER BOSS (increased size)
                 if (level === 10) {
                     bossActive = true;
                     enemies.push({
@@ -551,7 +756,6 @@
                     return;
                 }
 
-                // Normal level spawning
                 const rows = Math.min(3 + Math.floor(level / 1.5), 7);
                 const cols = 9;
                 const startX = 120;
@@ -627,7 +831,7 @@
             function nextLevel() {
                 if (level >= 10) {
                     gameActive = false;
-                    gameOverMessage = '🎉 YOU WIN!';
+                    gameOverMessage = '🎉 YOU WIN! 🎉';
                     return;
                 }
                 level++;
@@ -668,9 +872,11 @@
                     return;
                 }
 
-                // Player move
-                if (keys.left) player.x = Math.max(10, player.x - 7);
-                if (keys.right) player.x = Math.min(W - player.w - 10, player.x + 7);
+                // Keyboard digital movement (if analog not active)
+                if (!analogActive) {
+                    if (keys.left) player.x = Math.max(PLAYER_MIN_X, player.x - 7);
+                    if (keys.right) player.x = Math.min(PLAYER_MAX_X, player.x + 7);
+                }
 
                 // Shooting
                 if (keys.space && laserCooldown <= 0) {
@@ -711,7 +917,7 @@
                     }
                 }
 
-                // Boss shooting (even slower bullets)
+                // Boss shooting
                 if (bossActive) {
                     bossShootTimer++;
                     if (bossShootTimer >= 40) {
@@ -724,17 +930,17 @@
                                     y: boss.y + boss.h,
                                     w: 12,
                                     h: 24,
-                                    speed: 3.0 + i * 1.0, // was 4.0-6.0, now 3.0-5.0
+                                    speed: BOSS_BULLET_SPEED + i * 1.0,
                                 });
                             }
                         }
                     }
                 } else {
-                    // Regular enemy shooting (even slower)
+                    // Regular enemy shooting
                     if (enemies.length > 0 && Math.random() < 0.018) {
                         let shooterIndex = Math.floor(Math.random() * enemies.length);
                         let shooter = enemies[shooterIndex];
-                        let bulletSpeed = shooter.type === 'ufo' ? 4.0 : 3.0; // was 5.0/4.0, now 4.0/3.0
+                        let bulletSpeed = shooter.type === 'ufo' ? UFO_BULLET_SPEED : REGULAR_BULLET_SPEED;
                         enemyBullets.push({
                             x: shooter.x + shooter.w/2 - 4,
                             y: shooter.y + shooter.h,
@@ -828,7 +1034,7 @@
                 ufoLightPhase = (ufoLightPhase + 0.1) % (2 * Math.PI);
             }
 
-            // ---------- RENDERING ----------
+            // ---------- RENDERING (same as before, with detailed sprites) ----------
             function drawStars() {
                 if (!window.stars) {
                     window.stars = [];
@@ -1063,7 +1269,7 @@
                     ctx.shadowBlur = 50;
                     ctx.fillText(level === 10 ? '⚡ BOSS LEVEL' : `LEVEL ${level+1}`, W/2, H/2-30);
                     ctx.font = '40px monospace';
-                    ctx.fillText('⚡ PREPARE', W/2, H/2+40);
+                    ctx.fillText('PREPARE', W/2, H/2+40);
                     ctx.shadowBlur = 0;
                 }
 
@@ -1113,6 +1319,11 @@
                     bright: Math.random() * 0.6 + 0.2
                 });
             }
+
+            // Initialize thumb position
+            const rect = analogPad.getBoundingClientRect();
+            analogThumb.style.left = (rect.width / 2) + 'px';
+            analogThumb.style.top = (rect.height / 2) + 'px';
 
             resetGame();
             gameLoop();
